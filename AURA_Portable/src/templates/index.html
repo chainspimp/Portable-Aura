@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AURA Portable</title>
+<style>
+  :root {
+    --bg:        #0d0f13;
+    --surface:   #13161c;
+    --surface2:  #1a1e27;
+    --border:    #252a35;
+    --accent:    #5b8fff;
+    --accent2:   #7c3aed;
+    --text:      #e2e6f0;
+    --text-dim:  #7a8499;
+    --user-bg:   #1c2340;
+    --aura-bg:   #131a2e;
+    --lock-bg:   #1e1525;
+    --lock-border:#7c3aed44;
+    --green:     #22c55e;
+    --red:       #ef4444;
+    --yellow:    #eab308;
+  }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .logo-text {
+    font-size: 1.25rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .badge {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    letter-spacing: .5px;
+    text-transform: uppercase;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--red);
+    transition: background .3s;
+  }
+  .status-dot.online  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .status-dot.loading { background: var(--yellow); }
+  #model-label {
+    font-size: .75rem;
+    color: var(--text-dim);
+  }
+  .btn-icon {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: .8rem;
+    transition: all .15s;
+  }
+  .btn-icon:hover { border-color: var(--accent); color: var(--text); }
+
+  /* ── Layout ── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  aside {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+  .sidebar-section {
+    padding: 14px 12px 8px;
+  }
+  .sidebar-title {
+    font-size: .65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .feat-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: .82rem;
+    cursor: pointer;
+    text-align: left;
+    transition: background .15s;
+    position: relative;
+  }
+  .feat-btn:hover { background: var(--surface2); }
+  .feat-btn.locked { color: var(--text-dim); }
+  .feat-btn .lock-icon {
+    margin-left: auto;
+    font-size: .65rem;
+    opacity: .5;
+  }
+
+  /* ── Chat area ── */
+  .chat-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    scroll-behavior: smooth;
+  }
+  #messages::-webkit-scrollbar { width: 6px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .msg {
+    max-width: 78%;
+    line-height: 1.55;
+    animation: fadeUp .2s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(6px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .msg.user  { align-self: flex-end; }
+  .msg.aura  { align-self: flex-start; }
+  .msg.system{ align-self: center; max-width:90%; }
+
+  .bubble {
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: .9rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user  .bubble { background: var(--user-bg); border-bottom-right-radius: 4px; }
+  .msg.aura  .bubble { background: var(--aura-bg); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+  .msg.system .bubble { background: var(--surface2); border: 1px solid var(--border); font-size: .82rem; color: var(--text-dim); text-align:center; }
+
+  .msg-label {
+    font-size: .68rem;
+    color: var(--text-dim);
+    margin-bottom: 3px;
+    padding: 0 4px;
+  }
+  .msg.user .msg-label { text-align: right; }
+  .search-tag {
+    font-size: .7rem;
+    color: var(--accent);
+    padding: 0 4px;
+    margin-top: 3px;
+  }
+
+  /* Upgrade card */
+  .upgrade-card {
+    background: var(--lock-bg);
+    border: 1px solid var(--lock-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: .88rem;
+    line-height: 1.55;
+  }
+  .upgrade-card h4 {
+    font-size: .95rem;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .upgrade-card p {
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    font-size: .83rem;
+  }
+  .btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 16px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #fff;
+    font-weight: 600;
+    font-size: .82rem;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn-download:hover { opacity: .85; }
+
+  /* Typing indicator */
+  .typing .bubble { padding: 12px 16px; }
+  .dots { display: flex; gap: 4px; }
+  .dots span {
+    width: 6px; height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: bounce .9s infinite;
+  }
+  .dots span:nth-child(2) { animation-delay: .15s; }
+  .dots span:nth-child(3) { animation-delay: .3s;  }
+  @keyframes bounce {
+    0%,80%,100% { transform: translateY(0); opacity:.4; }
+    40%          { transform: translateY(-5px); opacity:1; }
+  }
+
+  /* ── Input bar ── */
+  .input-bar {
+    padding: 12px 20px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-shrink: 0;
+  }
+  #input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: .9rem;
+    resize: none;
+    max-height: 120px;
+    outline: none;
+    transition: border-color .15s;
+    font-family: inherit;
+    line-height: 1.4;
+  }
+  #input:focus { border-color: var(--accent); }
+  #input::placeholder { color: var(--text-dim); }
+
+  .send-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: .9rem;
+    font-weight: 600;
+    transition: opacity .15s;
+    flex-shrink: 0;
+  }
+  .send-btn:hover   { opacity: .85; }
+  .send-btn:disabled{ opacity: .4; cursor: default; }
+
+  .voice-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 10px 13px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  .voice-btn:hover   { border-color: var(--accent); color: var(--text); }
+  .voice-btn.listening{ background: #1e0a0a; border-color: var(--red); color: var(--red); }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    aside { display: none; }
+  }
+
+  /* Markdown-ish formatting in AURA bubbles */
+  .bubble strong { font-weight: 700; }
+  .bubble code {
+    background: #0008;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: 'Consolas', monospace;
+    font-size: .85em;
+  }
+  .bubble pre {
+    background: #0008;
+    padding: 10px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 6px 0;
+    font-family: 'Consolas', monospace;
+    font-size: .82em;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <span class="logo-text">AURA</span>
+    <span class="badge">Portable</span>
+  </div>
+  <div class="header-right">
+    <span class="status-dot loading" id="status-dot"></span>
+    <span id="model-label">checking…</span>
+    <button class="btn-icon" onclick="clearChat()">🗑 Clear</button>
+  </div>
+</header>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Sidebar -->
+  <aside>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Available</div>
+      {% for key in available %}
+      {% set f = features[key] %}
+      <button class="feat-btn" onclick="insertPrompt('{{ key }}')">
+        <span>{{ f.icon }}</span>
+        <span>{{ f.name }}</span>
+      </button>
+      {% endfor %}
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Full AURA Only</div>
+      {% for key in locked %}
+      {% set f = features[key] %}
+      <button class="feat-btn locked" onclick="showUpgrade('{{ key }}')">
+        <span>{{ f.icon }}</span>
+        <span>{{ f.name }}</span>
+        <span class="lock-icon">🔒</span>
+      </button>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <!-- Chat -->
+  <div class="chat-wrap">
+    <div id="messages">
+      <div class="msg system">
+        <div class="bubble">
+          ⚡ AURA Portable is running locally.<br>
+          Ask me anything — I can chat, search the web, and do math.<br>
+          Click a 🔒 feature to see what's in the full version.
+        </div>
+      </div>
+    </div>
+
+    <div class="input-bar">
+      {% if voice_enabled %}
+      <button class="voice-btn" id="voice-btn" onclick="toggleVoice()" title="Voice input">🎤</button>
+      {% endif %}
+      <textarea id="input" rows="1" placeholder="Ask AURA anything…" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()">Send ↗</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DOWNLOAD_URL = "{{ download_url }}";
+let listening = false;
+let isStreaming = false;
+
+// ── Status check ──────────────────────────────────────────────────
+async function checkStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
+    const dot = document.getElementById('status-dot');
+    const lbl = document.getElementById('model-label');
+    if (d.ollama) {
+      dot.className = 'status-dot online';
+      lbl.textContent = d.model;
+    } else {
+      dot.className = 'status-dot';
+      lbl.textContent = 'Ollama offline';
+    }
+  } catch { }
+}
+checkStatus();
+setInterval(checkStatus, 15000);
+
+// ── Message rendering ──────────────────────────────────────────────
+function addMsg(role, content, extra = {}) {
+  const msgs = document.getElementById('messages');
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}`;
+
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? 'You' : role === 'aura' ? 'AURA' : '';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+
+  if (extra.upgrade) {
+    bubble.innerHTML = renderUpgradeCard(extra.upgrade);
+  } else {
+    bubble.innerHTML = formatText(content);
+  }
+
+  if (role !== 'system') wrap.appendChild(label);
+  wrap.appendChild(bubble);
+
+  if (extra.searched) {
+    const tag = document.createElement('div');
+    tag.className = 'search-tag';
+    tag.textContent = '🔍 Web searched';
+    wrap.appendChild(tag);
+  }
+
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function addTyping() {
+  const msgs = document.getElementById('messages');
+  const wrap = document.createElement('div');
+  wrap.className = 'msg aura typing';
+  wrap.id = 'typing-indicator';
+  wrap.innerHTML = '<div class="bubble"><div class="dots"><span></span><span></span><span></span></div></div>';
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+function formatText(text) {
+  // Very basic markdown-ish formatting
+  return text
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/```([\s\S]*?)```/g, '<pre>$1</pre>')
+    .replace(/\n/g, '<br>');
+}
+
+function renderUpgradeCard(gate) {
+  const msg = gate.message
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+  return `
+    <div class="upgrade-card">
+      <h4>${gate.icon} ${gate.feature_name} — Full AURA Only</h4>
+      <p>${msg}</p>
+      <a class="btn-download" href="${gate.download_url}" target="_blank">
+        ⬇️ Download Full AURA
+      </a>
+    </div>`;
+}
+
+// ── Send message ───────────────────────────────────────────────────
+async function sendMessage() {
+  if (isStreaming) return;
+  const input = document.getElementById('input');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  input.style.height = '';
+  addMsg('user', text);
+
+  setStreaming(true);
+  addTyping();
+
+  let auraBubble = null;
+  let fullText   = '';
+  let searched   = false;
+
+  try {
+    const resp = await fetch('/api/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
+    });
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      const lines = decoder.decode(value).split('\n');
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6);
+        if (raw === '[DONE]') break;
+
+        const chunk = JSON.parse(raw);
+
+        if (chunk.type === 'upgrade') {
+          removeTyping();
+          addMsg('aura', '', { upgrade: chunk.gate });
+          setStreaming(false);
+          return;
+        }
+
+        if (chunk.type === 'meta' && chunk.searched) {
+          searched = true;
+        }
+
+        if (chunk.type === 'token') {
+          if (!auraBubble) {
+            removeTyping();
+            const msgs = document.getElementById('messages');
+            const wrap = document.createElement('div');
+            wrap.className = 'msg aura';
+            const lbl = document.createElement('div');
+            lbl.className = 'msg-label';
+            lbl.textContent = 'AURA';
+            auraBubble = document.createElement('div');
+            auraBubble.className = 'bubble';
+            wrap.appendChild(lbl);
+            wrap.appendChild(auraBubble);
+            if (searched) {
+              const tag = document.createElement('div');
+              tag.className = 'search-tag';
+              tag.textContent = '🔍 Web searched';
+              wrap.appendChild(tag);
+            }
+            msgs.appendChild(wrap);
+          }
+          fullText += chunk.content;
+          auraBubble.innerHTML = formatText(fullText);
+          document.getElementById('messages').scrollTop = 99999;
+        }
+      }
+    }
+  } catch (e) {
+    removeTyping();
+    addMsg('system', '⚠️ Network error: ' + e.message);
+  }
+
+  setStreaming(false);
+}
+
+function setStreaming(val) {
+  isStreaming = val;
+  document.getElementById('send-btn').disabled = val;
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+function autoResize(el) {
+  el.style.height = '';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── Voice ──────────────────────────────────────────────────────────
+async function toggleVoice() {
+  if (listening) return;
+  const btn = document.getElementById('voice-btn');
+  btn.classList.add('listening');
+  btn.textContent = '🔴';
+  listening = true;
+
+  const r = await fetch('/api/voice/listen', { method: 'POST' });
+  const d = await r.json();
+  btn.classList.remove('listening');
+  btn.textContent = '🎤';
+  listening = false;
+
+  if (d.type === 'upgrade') {
+    addMsg('aura', '', { upgrade: d.gate });
+    return;
+  }
+  if (d.success && d.text) {
+    document.getElementById('input').value = d.text;
+    sendMessage();
+  }
+}
+
+// ── Feature shortcuts ──────────────────────────────────────────────
+const FEATURE_PROMPTS = {
+  chat:        'Hello AURA!',
+  web_search:  'Search for: ',
+  calculator:  'Calculate ',
+  memory:      'What have we talked about so far?',
+};
+
+function insertPrompt(key) {
+  const prompt = FEATURE_PROMPTS[key];
+  if (prompt) {
+    const input = document.getElementById('input');
+    input.value = prompt;
+    input.focus();
+  }
+}
+
+async function showUpgrade(key) {
+  const r = await fetch(`/api/feature/${key}`);
+  const d = await r.json();
+  if (!d.available && d.gate) {
+    addMsg('aura', '', { upgrade: d.gate });
+    document.getElementById('messages').scrollTop = 99999;
+  }
+}
+
+// ── Clear ──────────────────────────────────────────────────────────
+async function clearChat() {
+  await fetch('/api/clear', { method: 'POST' });
+  const msgs = document.getElementById('messages');
+  msgs.innerHTML = `
+    <div class="msg system">
+      <div class="bubble">Chat cleared. Start a new conversation!</div>
+    </div>`;
+}
+</script>
+</body>
+</html>
